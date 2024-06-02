@@ -1,0 +1,38 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: Arial, sans-serif;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(20, 20px); /* 20 horizontal cells */
+  grid-template-rows: repeat(10, 20px); /* 10 vertical cells */
+  gap: 2px; /* Space between cells */
+  margin-top: 20px;
+  background-color: #ddd; /* Grid background color */
+}
+
+.cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid black; /* Cell border */
+  background-color: rgb(39, 39, 40); /* Blue background for each cell */
+}
+
+.snake {
+  background-color: red; /* Snake color */
+}
+
+.dot {
+  background-color: green; /* Dot color */
+}
+
+h1 {
+  font-size: 24px;
+  color: #333;
+}
+.diamond{
+  background-color: blue;
+}
