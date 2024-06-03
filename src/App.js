@@ -50,16 +50,16 @@ const App = () => {
     const handleKeyPress = (event) => {
       let newDirection;
       switch (event.key) {
-        case 'ArrowLeft':
+        case 'ArrowUp':
           newDirection = Direction.LEFT;
           break;
-        case 'ArrowRight':
+        case 'ArrowDown':
           newDirection = Direction.RIGHT;
           break;
-        case 'ArrowUp':
+        case 'ArrowLeft':
           newDirection = Direction.UP;
           break;
-        case 'ArrowDown':
+        case 'ArrowRight':
           newDirection = Direction.DOWN;
           break;
         default:
