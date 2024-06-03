@@ -23,7 +23,6 @@ const getRandomCoordinates = () => ({
 
 const getRandomDirection = (currentDirection) => {
   const directions = [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT];
-  // Remove the opposite direction to prevent the snake from reversing directly
   const oppositeDirection = {
     [Direction.UP]: Direction.DOWN,
     [Direction.DOWN]: Direction.UP,
@@ -34,138 +33,127 @@ const getRandomDirection = (currentDirection) => {
   return validDirections[Math.floor(Math.random() * validDirections.length)];
 };
 
-const getRandomInterval = () => Math.floor(Math.random() * 8000) + 1000; // Between 1 and 8 seconds
-
 const App = () => {
-  const [snakes, setSnakes] = useState([INITIAL_SNAKE]);
-  const [direction, setDirection] = useState(Direction.RIGHT);
-  const directionRef = useRef(direction);
+  const [score, setScore] = useState(0);
   const [dot, setDot] = useState(getRandomCoordinates());
   const [diamond, setDiamond] = useState(getRandomCoordinates());
-  const [score, setScore] = useState(0);
-  let diamondnew = diamond;
-  let newdot = dot;
-  let snakenew = snakes;
+  const snakes = useRef([INITIAL_SNAKE]);
+  const dotPosition = useRef(dot);
+  const diamondPosition = useRef(diamond);
+  const directions = useRef([Direction.RIGHT]);
+
+  const moveInterval = useRef(null);
 
   useEffect(() => {
-    const moveInterval = setInterval(moveSnake, 1000); // Snake moves every 1 second
-    changeDirectionRandomly();
+    moveInterval.current = setInterval(moveSnakes, 1000);
 
-    return () => {
-      clearInterval(moveInterval);
-    };
-  }, []);
-
-  useEffect(() => {
-    directionRef.current = direction;
-  }, [direction]);
-
-  useEffect(() => {
     const handleKeyPress = (event) => {
+      let newDirection;
       switch (event.key) {
         case 'ArrowLeft':
-          moveDot(Direction.LEFT);
+          newDirection = Direction.LEFT;
           break;
         case 'ArrowRight':
-          moveDot(Direction.RIGHT);
+          newDirection = Direction.RIGHT;
           break;
         case 'ArrowUp':
-          moveDot(Direction.UP);
+          newDirection = Direction.UP;
           break;
         case 'ArrowDown':
-          moveDot(Direction.DOWN);
+          newDirection = Direction.DOWN;
           break;
         default:
-          break;
+          return;
       }
+      moveDot(newDirection);
     };
 
     document.addEventListener('keydown', handleKeyPress);
 
     return () => {
+      clearInterval(moveInterval.current);
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, []); // Only add event listener once when component mounts
+  }, []);
 
-  const changeDirectionRandomly = () => {
-    setTimeout(() => {
-      setDirection(getRandomDirection(directionRef.current));
-      changeDirectionRandomly();
-    }, getRandomInterval());
-  };
+  const moveSnakes = () => {
+    snakes.current = snakes.current.map((snake, index) => {
+      const newSnake = [...snake];
+      const head = { ...newSnake[0] };
 
-  const moveSnake = () => {
-    setSnakes((prevSnakes) => {
-      return prevSnakes.map((prevSnake) => {
-        const newSnake = [...prevSnake];
-        const head = { ...newSnake[0] };
+      head.x += directions.current[index].x;
+      head.y += directions.current[index].y;
 
-        head.x += directionRef.current.x;
-        head.y += directionRef.current.y;
+      if (head.x >= GRID_WIDTH) head.x = 0;
+      if (head.x < 0) head.x = GRID_WIDTH - 1;
+      if (head.y >= GRID_HEIGHT) head.y = 0;
+      if (head.y < 0) head.y = GRID_HEIGHT - 1;
 
-        // Wrap around the grid edges
-        if (head.x >= GRID_WIDTH) head.x = 0;
-        if (head.x < 0) head.x = GRID_WIDTH - 1;
-        if (head.y >= GRID_HEIGHT) head.y = 0;
-        if (head.y < 0) head.y = GRID_HEIGHT - 1;
+      newSnake.unshift(head);
+      newSnake.pop();
 
-        newSnake.unshift(head);
-        newSnake.pop();
-        snakenew = newSnake;
-        return newSnake;
-      });
+      return newSnake;
     });
+
     checkCollision();
+    setDot({ ...dotPosition.current });
+    setDiamond({ ...diamondPosition.current });
   };
 
   const moveDot = (newDirection) => {
-    setDot((prevDot) => {
-      const newDot = { ...prevDot };
-      newDot.x += newDirection.x;
-      newDot.y += newDirection.y;
+    const newDot = { ...dotPosition.current };
+    newDot.x += newDirection.x;
+    newDot.y += newDirection.y;
 
-      // Ensure the dot stays within the grid bounds
-      if (newDot.x >= GRID_WIDTH) newDot.x = GRID_WIDTH - 1;
-      if (newDot.x < 0) newDot.x = 0;
-      if (newDot.y >= GRID_HEIGHT) newDot.y = GRID_HEIGHT - 1;
-      if (newDot.y < 0) newDot.y = 0;
+    if (newDot.x >= GRID_WIDTH) newDot.x = GRID_WIDTH - 1;
+    if (newDot.x < 0) newDot.x = 0;
+    if (newDot.y >= GRID_HEIGHT) newDot.y = GRID_HEIGHT - 1;
+    if (newDot.y < 0) newDot.y = 0;
 
-      if (newDot.x === diamond.x && newDot.y === diamond.y || newDot.x === diamondnew.x && newDot.y === diamondnew.y) {
-        // Increase score and set new diamond position
-        setScore((prev) => prev + 10);
-        let a = getRandomCoordinates();
-        diamondnew = a;
-        setDiamond(a);
-
-        // Add a new snake
-        setSnakes((prevSnakes) => {
-          snakenew=[...prevSnakes, INITIAL_SNAKE]
-          return [...prevSnakes, INITIAL_SNAKE]
-        });
-      }
-      newdot = newDot;
-      checkCollision();
-      return newDot;
-    });
+    dotPosition.current = newDot;
+    checkCollision();
+    setDot({ ...newDot });
   };
 
   const checkCollision = () => {
-    snakenew=snakes
+    snakes.current.forEach((snake) => {
+      if (snake.some(segment => segment.x === dotPosition.current.x && segment.y === dotPosition.current.y)) {
+        setScore((prev) => prev - 10);
+      }
+    });
 
-    if (snakenew.some(snake =>{
-      return  snake.some(segment => {
-      
-        return segment.x === newdot.x && segment.y === newdot.y
-      })
-    })) {
-      console.log('colision');
-      
-      // Decrease score and set new diamond position
-      setScore((prev) => prev - 10);
-      let a = getRandomCoordinates();
-      diamondnew = a;
-      setDiamond(a);
+    if (dotPosition.current.x === diamondPosition.current.x && dotPosition.current.y === diamondPosition.current.y) {
+      setScore((prev) => prev + 10);
+      diamondPosition.current = getRandomCoordinates();
+      addRandomMovingSnake();
     }
+  };
+
+  const addRandomMovingSnake = () => {
+    const newSnake = INITIAL_SNAKE.map(segment => ({ ...segment }));
+    snakes.current.push(newSnake);
+    directions.current.push(getRandomDirection(Direction.RIGHT));
+
+    const snakeIndex = snakes.current.length - 1;
+    const moveNewSnake = () => {
+      const newSnake = [...snakes.current[snakeIndex]];
+      const head = { ...newSnake[0] };
+
+      head.x += directions.current[snakeIndex].x;
+      head.y += directions.current[snakeIndex].y;
+
+      if (head.x >= GRID_WIDTH) head.x = 0;
+      if (head.x < 0) head.x = GRID_WIDTH - 1;
+      if (head.y >= GRID_HEIGHT) head.y = 0;
+      if (head.y < 0) head.y = GRID_HEIGHT - 1;
+
+      newSnake.unshift(head);
+      newSnake.pop();
+
+      snakes.current[snakeIndex] = newSnake;
+      setTimeout(moveNewSnake, 1000);
+    };
+    moveNewSnake();
   };
 
   return (
@@ -178,7 +166,7 @@ const App = () => {
               <div
                 key={x}
                 className={`cell ${
-                  snakes.some(snake => snake.some(cell => cell.x === x && cell.y === y)) ? 'snake' : ''
+                  snakes.current.some(snake => snake.some(cell => cell.x === x && cell.y === y)) ? 'snake' : ''
                 } ${dot.x === x && dot.y === y ? 'dot' : ''} ${diamond.x === x && diamond.y === y ? 'diamond' : ''}`}
               ></div>
             ))}
